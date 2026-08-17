@@ -1,4 +1,4 @@
-import { type FormattedLine, formatTime, LOG_LEVEL } from "./common.ts";
+import { type FormattedLine, LOG_LEVEL } from "./common.ts";
 
 /**
  * Creates a stream formatter dedicated to either colored or plain ANSI output.
@@ -17,7 +17,9 @@ export function plainFormatter(rawLine: string): FormattedLine {
     const logObj = JSON.parse(rawLine);
     const levelNum = Number(logObj.level) || LOG_LEVEL.info;
 
-    const timeStr = formatTime(Number(logObj.time) || Date.now());
+    const timeStr = new Date(logObj.time || Date.now()).toLocaleTimeString("en-US", {
+      hour12: false,
+    });
     const levelStr = getFormattedLevel(levelNum);
     const tagStr = logObj.prefix ? `[${logObj.prefix}]` : "";
     const msgStr = typeof logObj.msg === "string" ? logObj.msg : "";

@@ -1,4 +1,4 @@
-import { type FormattedLine, formatTime, LOG_LEVEL } from "./common.ts";
+import { type FormattedLine, LOG_LEVEL } from "./common.ts";
 
 // Pre-compiled ANSI color palette
 const colors = {
@@ -24,7 +24,10 @@ export function prettyFormatter(rawLine: string): FormattedLine {
     const logObj = JSON.parse(rawLine);
     const levelNum = Number(logObj.level) || LOG_LEVEL.info;
 
-    const timeStr = formatTime(Number(logObj.time) || Date.now());
+    // const timeStr = formatTime(Number(logObj.time) || Date.now());
+    const timeStr = new Date(logObj.time || Date.now()).toLocaleTimeString("en-US", {
+      hour12: false,
+    });
     const levelStr = getFormattedLevel(levelNum);
     const tagStr = logObj.prefix ? `${colors.green(`[${logObj.prefix}]`)} ` : "";
     const msgStr = typeof logObj.msg === "string" ? logObj.msg : "";

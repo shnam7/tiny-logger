@@ -5,6 +5,8 @@ import type { FormattedLine } from "./common.ts";
 import { plainFormatter } from "./plainFormatter.ts";
 import { prettyFormatter } from "./prettyFormatter.ts";
 
+export type { Logger };
+
 export type LoggerOptions = Pick<pino.LoggerOptions, "level"> & {
   colorize?: boolean;
   prefix?: string;
