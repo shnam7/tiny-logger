@@ -6,6 +6,9 @@ const colors = {
   green: (s: string) => `\x1b[32m${s}\x1b[0m`,
   yellow: (s: string) => `\x1b[33m${s}\x1b[0m`,
   blue: (s: string) => `\x1b[34m${s}\x1b[0m`,
+  purple: (s: string) => `\x1b[35m${s}\x1b[0m`,
+  cyan: (s: string) => `\x1b[36m${s}\x1b[0m`,
+  white: (s: string) => `\x1b[37m${s}\x1b[0m`,
   gray: (s: string) => `\x1b[90m${s}\x1b[0m`,
   bgRed: (s: string) => `\x1b[41;37m${s}\x1b[0m`,
 };
@@ -38,7 +41,7 @@ export const prettyFormatHooks: FormatHooks = {
     if (levelNum <= LOG_LEVEL.error) return colors.red("ERROR");
     return colors.bgRed("FATAL");
   },
-  formatPrefix: (prefixStr: string) => colors.green(plainFormatHooks.formatPrefix(prefixStr)),
+  formatPrefix: (prefixStr: string) => colors.cyan(plainFormatHooks.formatPrefix(prefixStr)),
   // was: plainFormatHooks.formatTime(msgStr) - fed the message through the
   // time formatter (typo). The message isn't colorized, same as plain mode.
   formatMsg: (msgStr: string) => plainFormatHooks.formatMsg(msgStr),

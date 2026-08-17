@@ -7,11 +7,14 @@ export interface FormatHooks {
   formatMsg: (msgStr: string) => string;
 }
 
-export type LoggerOptions = Pick<pino.LoggerOptions, "level"> &
-  Partial<FormatHooks> & {
-    prefix?: string;
-    colorize?: boolean;
-  };
+export type FormatOptions = FormatHooks & {
+  prefix?: string;
+  colorize?: boolean;
+  timeStamp?: boolean;
+  levelTag?: boolean;
+};
+
+export type LoggerOptions = Pick<pino.LoggerOptions, "level"> & Partial<FormatOptions>;
 
 export interface FormattedLine {
   line: string;
@@ -21,7 +24,7 @@ export interface FormattedLine {
 // formatter only ever needs the four format hooks - not the full
 // LoggerOptions grab-bag (level/prefix/colorize are consumed earlier, when
 // createLogger picks which hook set to use).
-export type Formatter = (rawLine: string, hooks: FormatHooks) => FormattedLine;
+export type Formatter = (rawLine: string, options: FormatOptions) => FormattedLine;
 
 export const LOG_LEVEL = {
   trace: 10,

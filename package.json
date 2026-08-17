@@ -1,6 +1,6 @@
 {
   "name": "@wicle/tiny-logger",
-  "version": "0.9.1",
+  "version": "0.10.0",
   "description": "A lightweight logger with ts-log interface providing colored output.",
   "type": "module",
   "main": "./dist/index.cjs",

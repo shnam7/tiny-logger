@@ -1,8 +1,8 @@
 import { Writable } from "node:stream";
-import pino from "pino";
+import pino, { levels } from "pino";
 import type { Logger } from "ts-log";
 import {
-  type FormatHooks,
+  type FormatOptions,
   type FormattedLine,
   type Formatter,
   LOG_LEVEL,
@@ -17,15 +17,17 @@ let defaultLogger: Logger | undefined;
 
 const isColorSupported = (): boolean => Boolean(process.stdout.isTTY) && !process.env.NO_COLOR;
 
-export function formatter(rawLine: string, hooks: FormatHooks): FormattedLine {
+export function formatter(rawLine: string, options: FormatOptions): FormattedLine {
   try {
     const logObj = JSON.parse(rawLine);
     const levelNum = Number(logObj.level ?? LOG_LEVEL.info);
-    const timeStr = hooks.formatTime(logObj.time ?? Date.now());
-    const levelStr = hooks.formatLevel(levelNum);
-    const prefixStr = hooks.formatPrefix(logObj.prefix ? `${logObj.prefix}` : "");
-    const msgStr = hooks.formatMsg(typeof logObj.msg === "string" ? logObj.msg : "");
-    let line = `${timeStr} ${levelStr} ${prefixStr} ${msgStr}\n`;
+
+    const timeStr = options.timeStamp ? options.formatTime(logObj.time ?? Date.now()) : "";
+    const levelStr = options.levelTag ? options.formatLevel(levelNum) : "";
+    const prefixStr = logObj.prefix ? options.formatPrefix(logObj.prefix) : "";
+    const msgStr = options.formatMsg(typeof logObj.msg === "string" ? logObj.msg : "");
+
+    let line = `${[timeStr, levelStr, prefixStr, msgStr].filter((s) => s.length > 0).join(" ")}\n`;
 
     if (logObj.err) {
       const detail = typeof logObj.err.stack === "string" ? logObj.err.stack : logObj.err.message;
@@ -38,10 +40,10 @@ export function formatter(rawLine: string, hooks: FormatHooks): FormattedLine {
   }
 }
 
-function createFormattedStream(formatter: Formatter, hooks: FormatHooks): Writable {
+function createFormattedStream(formatter: Formatter, options: FormatOptions): Writable {
   return new Writable({
     write(chunk: Buffer | string, _encoding, callback) {
-      const { line, stream } = formatter(chunk.toString(), hooks);
+      const { line, stream } = formatter(chunk.toString(), options);
       (stream === "stderr" ? process.stderr : process.stdout).write(line);
       callback();
     },
@@ -57,19 +59,21 @@ export function createLogger(options: LoggerOptions = {}): Logger {
 
   // Per-field hook overrides (formatTime/formatLevel/formatPrefix/formatMsg)
   // fall back to the colorize-appropriate default set, not always "plain".
-  const hooks: FormatHooks = {
+  const formatOptions: FormatOptions = {
     formatTime: options.formatTime ?? defaultHooks.formatTime,
     formatLevel: options.formatLevel ?? defaultHooks.formatLevel,
     formatPrefix: options.formatPrefix ?? defaultHooks.formatPrefix,
     formatMsg: options.formatMsg ?? defaultHooks.formatMsg,
+    timeStamp: options.timeStamp ?? true,
+    levelTag: options.levelTag ?? true,
   };
 
-  return pino(pinoOptions, createFormattedStream(formatter, hooks)).child({
+  return pino(pinoOptions, createFormattedStream(formatter, formatOptions)).child({
     prefix: options.prefix,
   });
 }
 
 export function getDefaultLogger(): Logger {
-  defaultLogger ??= createLogger({ level: "trace", colorize: true });
+  defaultLogger ??= createLogger({});
   return defaultLogger;
 }
