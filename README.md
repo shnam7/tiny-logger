@@ -1,6 +1,6 @@
 # tiny-logger
 
-`tiny-logger` is a lightweight logger with [ts-log](https://github.com/kallaspriit/ts-log) intrface that provides colored log output and prefix support.
+`tiny-logger` is a lightweight logger with [ts-log](https://github.com/kallaspriit/ts-log) interface that provides colored log output and prefix support.
 It formats log levels with ANSI colors and routes messages to `stdout` or `stderr` depending on severity.
 
 ---
@@ -11,8 +11,8 @@ It formats log levels with ANSI colors and routes messages to `stdout` or `stder
 - Optional prefix for log messages
 - Writes `ERROR` and above to `stderr`, others to `stdout`
 - Compatible with `ts-log` interface
-- Respects `NO_COLOR` and non-TTY output (colors are automatically disabled when not writing to a terminal, or when `NO_COLOR` is set)
-- Graceful handling of unparseable/non-JSON log lines (passed through unchanged)
+- Respects `NO_COLOR` and non-TTY output by default (colors are automatically disabled when not writing to a terminal, or when `NO_COLOR` is set), and can be forced on/off explicitly via the `colorize` option
+- Every part of the output line (time, level, prefix, message) can be customized via format hooks
 
 ---
 
@@ -39,11 +39,11 @@ logger.warn("Something looks suspicious");
 logger.error("An error occurred");
 ```
 
-Output is formatted as `HH:MM:ss LEVEL [prefix] message`, with the level and prefix color-coded when writing to a TTY.
+Output is formatted as `H:MM:SS AM/PM LEVEL prefix message`, with the level and prefix color-coded when writing to a TTY:
 
 ### Default Logger
 
-A lazily-created, process-wide logger instance, reused across calls that don't need their own configuration:
+A lazily-created, process-wide logger instance, reused across calls that don't need their own configuration. It runs at the `trace` level with colors always on:
 
 ```ts
 import { getDefaultLogger } from "tiny-logger";
@@ -56,11 +56,24 @@ defaultLogger.info("Using the default logger instance");
 
 `createLogger` accepts a `LoggerOptions` object:
 
-| Option     | Type      | Description                                                                                     |
-| ---------- | --------- | ----------------------------------------------------------------------------------------------- |
-| `level`    | `string`  | Minimum pino log level to emit (`"trace"`, `"debug"`, `"info"`, `"warn"`, `"error"`, `"fatal"`) |
-| `prefix`   | `string`  | Optional tag shown as `[prefix]` next to each log line                                          |
-| `colorize` | `boolean` | Enable or disable color (currently color is auto-detected via TTY/`NO_COLOR`)                   |
+| Option         | Type                            | Description                                                                                     |
+| -------------- | ------------------------------- | ----------------------------------------------------------------------------------------------- |
+| `level`        | `string`                        | Minimum pino log level to emit (`"trace"`, `"debug"`, `"info"`, `"warn"`, `"error"`, `"fatal"`) |
+| `prefix`       | `string`                        | Optional tag shown next to each log line                                                        |
+| `colorize`     | `boolean`                       | Force color on (`true`) or off (`false`). Omit to auto-detect based on TTY / `NO_COLOR`         |
+| `formatTime`   | `(timeStr: string) => string`   | Customize how the timestamp is rendered                                                         |
+| `formatLevel`  | `(levelNum: number) => string`  | Customize how the level label is rendered                                                       |
+| `formatPrefix` | `(prefixStr: string) => string` | Customize how the prefix is rendered                                                            |
+| `formatMsg`    | `(msgStr: string) => string`    | Customize how the message text is rendered                                                      |
+
+Any format hook you don't provide falls back to the built-in plain or colored formatting, depending on `colorize`. For example, to keep the default coloring but wrap the message:
+
+```ts
+const logger = createLogger({
+  colorize: true,
+  formatMsg: (msg) => `>> ${msg} <<`,
+});
+```
 
 ## License
 

@@ -13,7 +13,7 @@ describe("Print sample output", () => {
   });
 
   it("prints customLogger messages", () => {
-    const logger = createLogger({ prefix: "tiny-logger", level: "trace", colorize: true });
+    const logger = createLogger({ prefix: "tiny-logger", level: "trace", colorize: false });
 
     logger.trace("This is a trace message");
     logger.debug("Debugging details here");
@@ -55,7 +55,7 @@ describe("Logger Factory & Wiring", () => {
       expect(stdoutSpy).toHaveBeenCalledTimes(1);
       const output = String(stdoutSpy.mock.calls[0]?.[0]);
 
-      expect(output).toContain("[app-service]");
+      expect(output).toContain("app-service");
       expect(output).toContain("service started successfully");
       expect(stderrSpy).not.toHaveBeenCalled();
     });
@@ -90,60 +90,63 @@ describe("Logger Factory & Wiring", () => {
   });
 
   describe("createLogger - Color Support & Formatting Selection", () => {
-    it("should use prettyFormatter (ANSI escape sequences) when stdout is TTY and NO_COLOR is not set", () => {
-      process.stdout.isTTY = true;
-      delete process.env.NO_COLOR;
+    it.each([
+      {
+        isTTY: true,
+        noColor: undefined,
+        colorize: undefined,
+        expectedAnsi: true,
+        desc: "stdout is TTY and NO_COLOR is not set",
+      },
+      {
+        isTTY: false,
+        noColor: undefined,
+        colorize: undefined,
+        expectedAnsi: false,
+        desc: "stdout is not TTY",
+      },
+      {
+        isTTY: true,
+        noColor: "1",
+        colorize: undefined,
+        expectedAnsi: false,
+        desc: "NO_COLOR is set even on TTY",
+      },
+      {
+        isTTY: false,
+        noColor: "1",
+        colorize: true,
+        expectedAnsi: true,
+        desc: "colorize: true override forces ANSI output",
+      },
+      {
+        isTTY: true,
+        noColor: undefined,
+        colorize: false,
+        expectedAnsi: false,
+        desc: "colorize: false override suppresses ANSI output",
+      },
+    ])(
+      "should determine ANSI formatting correctly when $desc",
+      ({ isTTY, noColor, colorize, expectedAnsi }) => {
+        process.stdout.isTTY = isTTY;
+        if (noColor === undefined) {
+          delete process.env.NO_COLOR;
+        } else {
+          process.env.NO_COLOR = noColor;
+        }
 
-      const logger = createLogger();
-      logger.info("colored output");
+        const logger = createLogger({ colorize });
+        logger.info("test message");
 
-      const output = String(stdoutSpy.mock.calls[0]?.[0]);
-      expect(output).toMatch(/\x1b\[/);
-    });
-
-    it("should use plainFormatter (no ANSI escape) when stdout is not TTY", () => {
-      process.stdout.isTTY = false;
-      delete process.env.NO_COLOR;
-
-      const logger = createLogger();
-      logger.info("plain output");
-
-      const output = String(stdoutSpy.mock.calls[0]?.[0]);
-      expect(output).not.toMatch(/\x1b\[/);
-    });
-
-    it("should use plainFormatter when NO_COLOR is set even on TTY environment", () => {
-      process.stdout.isTTY = true;
-      process.env.NO_COLOR = "1";
-
-      const logger = createLogger();
-      logger.info("no color output");
-
-      const output = String(stdoutSpy.mock.calls[0]?.[0]);
-      expect(output).not.toMatch(/\x1b\[/);
-    });
-
-    it("should force prettyFormatter when colorize option is explicitly set to true", () => {
-      process.stdout.isTTY = false;
-      process.env.NO_COLOR = "1";
-
-      const logger = createLogger({ colorize: true });
-      logger.info("forced color output");
-
-      const output = String(stdoutSpy.mock.calls[0]?.[0]);
-      expect(output).toMatch(/\x1b\[/);
-    });
-
-    it("should force plainFormatter when colorize option is explicitly set to false", () => {
-      process.stdout.isTTY = true;
-      delete process.env.NO_COLOR;
-
-      const logger = createLogger({ colorize: false });
-      logger.info("forced plain output");
-
-      const output = String(stdoutSpy.mock.calls[0]?.[0]);
-      expect(output).not.toMatch(/\x1b\[/);
-    });
+        const output = String(stdoutSpy.mock.calls[0]?.[0]);
+        if (expectedAnsi) {
+          expect(output).toMatch(/\x1b\[/);
+        } else {
+          expect(output).not.toMatch(/\x1b\[/);
+        }
+      },
+    );
   });
 
   describe("getDefaultLogger", () => {
