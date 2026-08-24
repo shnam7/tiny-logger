@@ -1,5 +1,11 @@
 # @wicle/tiny-logger
 
+## 0.10.1
+
+### Patch Changes
+
+- Fix missing export 'Logger'.
+
 ## 0.10.0
 
 ### Minor Changes

@@ -1,5 +1,5 @@
 import { Writable } from "node:stream";
-import pino, { levels } from "pino";
+import pino from "pino";
 import type { Logger } from "ts-log";
 import {
   type FormatOptions,
@@ -12,6 +12,7 @@ import { plainFormatHooks, prettyFormatHooks } from "./hooks.ts";
 
 export * from "./common.ts";
 export * from "./hooks.ts";
+export type { Logger };
 
 let defaultLogger: Logger | undefined;
 
