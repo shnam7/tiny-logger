@@ -71,6 +71,7 @@
     "ts-log": "^3.0.3"
   },
   "devDependencies": {
+    "@biomejs/biome": "^2.5.10",
     "@changesets/cli": "^3.0.1",
     "@vitest/coverage-v8": "^4.1.11",
     "npm-run-all2": "^9.0.3",

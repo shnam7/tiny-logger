@@ -1,12 +1,13 @@
 import { Writable } from "node:stream";
 import pino from "pino";
-import type { Logger } from "ts-log";
 import {
   type FormatOptions,
   type FormattedLine,
   type Formatter,
   LOG_LEVEL,
+  type Logger,
   type LoggerOptions,
+  type LogObject,
 } from "./common.ts";
 import { plainFormatHooks, prettyFormatHooks } from "./hooks.ts";
 
@@ -19,25 +20,38 @@ let defaultLogger: Logger | undefined;
 const isColorSupported = (): boolean => Boolean(process.stdout.isTTY) && !process.env.NO_COLOR;
 
 export function formatter(rawLine: string, options: FormatOptions): FormattedLine {
-  try {
-    const logObj = JSON.parse(rawLine);
-    const levelNum = Number(logObj.level ?? LOG_LEVEL.info);
+  if (!rawLine || rawLine === "\n" || rawLine === "\r\n") {
+    return { line: "", stream: "stdout" };
+  }
 
-    const timeStr = options.timeStamp ? options.formatTime(logObj.time ?? Date.now()) : "";
-    const levelStr = options.levelTag ? options.formatLevel(levelNum) : "";
-    const prefixStr = logObj.prefix ? options.formatPrefix(logObj.prefix) : "";
-    const msgStr = options.formatMsg(typeof logObj.msg === "string" ? logObj.msg : "");
+  try {
+    const logObj = JSON.parse(rawLine) as LogObject;
+
+    logObj.time = Number(logObj.time || Date.now());
+    logObj.level = Number(logObj.level ?? LOG_LEVEL.info);
+
+    const timeStr = options.timeStamp ? options.formatTime(logObj, options) : "";
+    const levelStr = options.levelTag ? options.formatLevel(logObj, options) : "";
+    const prefixStr = logObj.prefix ? options.formatPrefix(logObj, options) : "";
+    const msgStr = logObj.msg !== undefined ? options.formatMsg(logObj, options) : "";
 
     let line = `${[timeStr, levelStr, prefixStr, msgStr].filter((s) => s.length > 0).join(" ")}\n`;
 
-    if (logObj.err) {
-      const detail = typeof logObj.err.stack === "string" ? logObj.err.stack : logObj.err.message;
-      if (detail) line += `${detail}\n`;
-    }
+    if (logObj.err && typeof logObj.err === "object") {
+      const detail =
+        typeof logObj.err.stack === "string"
+          ? logObj.err.stack
+          : typeof logObj.err.message === "string"
+            ? logObj.err.message
+            : null;
 
-    return { line, stream: levelNum >= LOG_LEVEL.error ? "stderr" : "stdout" };
+      if (detail) {
+        line += detail.endsWith("\n") ? detail : `${detail}\n`;
+      }
+    }
+    return { line, stream: logObj.level >= LOG_LEVEL.error ? "stderr" : "stdout" };
   } catch {
-    return { line: rawLine, stream: "stdout" };
+    return { line: rawLine.endsWith("\n") ? rawLine : `${rawLine}\n`, stream: "stdout" };
   }
 }
 
@@ -45,21 +59,23 @@ function createFormattedStream(formatter: Formatter, options: FormatOptions): Wr
   return new Writable({
     write(chunk: Buffer | string, _encoding, callback) {
       const { line, stream } = formatter(chunk.toString(), options);
-      (stream === "stderr" ? process.stderr : process.stdout).write(line);
+      if (line) (stream === "stderr" ? process.stderr : process.stdout).write(line);
       callback();
     },
   });
 }
 
 export function createLogger(options: LoggerOptions = {}): Logger {
-  const pinoOptions: pino.LoggerOptions = {};
-  if (options.level !== undefined) pinoOptions.level = options.level;
+  const pinoOptions: pino.LoggerOptions = {
+    serializers: { err: pino.stdSerializers.err },
+    customLevels: { verbose: LOG_LEVEL.verbose },
+    useOnlyCustomLevels: false, // 표준 레벨(info, debug 등)도 하이브리드로 함께 사용하도록 명시
+    level: options.level ?? "info", // 임의 변환 필터링 레이어 없이 "verbose" 및 "silent" 등을 네이티브 수용
+  };
 
   const shouldColorize = options.colorize ?? isColorSupported();
   const defaultHooks = shouldColorize ? prettyFormatHooks : plainFormatHooks;
 
-  // Per-field hook overrides (formatTime/formatLevel/formatPrefix/formatMsg)
-  // fall back to the colorize-appropriate default set, not always "plain".
   const formatOptions: FormatOptions = {
     formatTime: options.formatTime ?? defaultHooks.formatTime,
     formatLevel: options.formatLevel ?? defaultHooks.formatLevel,
@@ -69,9 +85,12 @@ export function createLogger(options: LoggerOptions = {}): Logger {
     levelTag: options.levelTag ?? true,
   };
 
-  return pino(pinoOptions, createFormattedStream(formatter, formatOptions)).child({
-    prefix: options.prefix,
-  });
+  const stream = createFormattedStream(formatter, formatOptions);
+  const logger = pino(pinoOptions, stream);
+
+  return options.prefix
+    ? (logger.child({ prefix: options.prefix }) as unknown as Logger)
+    : (logger as unknown as Logger);
 }
 
 export function getDefaultLogger(): Logger {

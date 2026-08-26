@@ -1,4 +1,4 @@
-import type { FormatHooks } from "./common.ts";
+import type { FormatHooks, FormatOptions, LogObject } from "./common.ts";
 import { LOG_LEVEL } from "./common.ts";
 
 const colors = {
@@ -13,36 +13,52 @@ const colors = {
   bgRed: (s: string) => `\x1b[41;37m${s}\x1b[0m`,
 };
 
+function levelToNameColorPair(level: number): [string, (s: string) => string] {
+  if (level <= LOG_LEVEL.trace) return ["TRACE", colors.gray];
+  if (level <= LOG_LEVEL.debug) return ["DEBUG", colors.blue];
+  if (level <= LOG_LEVEL.verbose) return ["VERBOSE", colors.cyan];
+  if (level <= LOG_LEVEL.info) return ["INFO", colors.cyan];
+  if (level <= LOG_LEVEL.warn) return ["WARN", colors.yellow];
+  if (level <= LOG_LEVEL.error) return ["ERROR", colors.red];
+  return ["FATAL", colors.bgRed];
+}
+
 //--- plain formatter
 export const plainFormatHooks: FormatHooks = {
-  formatTime: (timeStr: string) => {
-    return new Date(timeStr).toLocaleTimeString("en-US", { hour12: true });
+  formatTime: (logObj: LogObject, _options: FormatOptions) => {
+    const timeMs = typeof logObj.time === "number" ? logObj.time : Date.now();
+    return new Date(timeMs).toLocaleTimeString("en-US", { hour12: true });
   },
-  formatLevel: (levelNum: number) => {
-    if (levelNum <= LOG_LEVEL.trace) return "TRACE";
-    if (levelNum <= LOG_LEVEL.debug) return "DEBUG";
-    if (levelNum <= LOG_LEVEL.info) return "INFO";
-    if (levelNum <= LOG_LEVEL.warn) return "WARN";
-    if (levelNum <= LOG_LEVEL.error) return "ERROR";
-    return "FATAL";
+  formatLevel: (logObj: LogObject, _options: FormatOptions) => {
+    const [name, _color] = levelToNameColorPair(logObj.level);
+    return name;
   },
-  formatPrefix: (prefixStr: string) => prefixStr,
-  formatMsg: (msgStr: string) => msgStr,
+  formatPrefix: (logObj: LogObject, _options: FormatOptions) => {
+    return logObj.prefix ?? "";
+  },
+  formatMsg: (logObj: LogObject, _options: FormatOptions) => {
+    if (logObj.msg === undefined || logObj.msg === null) return "";
+    return typeof logObj.msg === "object" ? JSON.stringify(logObj.msg) : String(logObj.msg);
+  },
 };
 
 //--- pretty formatter
 export const prettyFormatHooks: FormatHooks = {
-  formatTime: (timeStr: string) => colors.gray(plainFormatHooks.formatTime(timeStr)),
-  formatLevel: (levelNum: number) => {
-    if (levelNum <= LOG_LEVEL.trace) return colors.gray("TRACE");
-    if (levelNum <= LOG_LEVEL.debug) return colors.blue("DEBUG");
-    if (levelNum <= LOG_LEVEL.info) return colors.green("INFO");
-    if (levelNum <= LOG_LEVEL.warn) return colors.yellow("WARN");
-    if (levelNum <= LOG_LEVEL.error) return colors.red("ERROR");
-    return colors.bgRed("FATAL");
+  formatTime: (logObj: LogObject, options: FormatOptions) =>
+    colors.gray(plainFormatHooks.formatTime(logObj, options)),
+
+  formatLevel: (logObj: LogObject, _options: FormatOptions) => {
+    const [name, color] = levelToNameColorPair(logObj.level);
+    return color(name);
   },
-  formatPrefix: (prefixStr: string) => colors.cyan(plainFormatHooks.formatPrefix(prefixStr)),
-  // was: plainFormatHooks.formatTime(msgStr) - fed the message through the
-  // time formatter (typo). The message isn't colorized, same as plain mode.
-  formatMsg: (msgStr: string) => plainFormatHooks.formatMsg(msgStr),
+
+  formatPrefix: (logObj: LogObject, _options: FormatOptions) => {
+    if (!logObj.prefix) return "";
+
+    const [_, color] = levelToNameColorPair(logObj.level);
+    return color(logObj.prefix);
+  },
+
+  formatMsg: (logObj: LogObject, options: FormatOptions) =>
+    plainFormatHooks.formatMsg(logObj, options),
 };
