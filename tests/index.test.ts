@@ -1,5 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { createLogger, getDefaultLogger, type Logger, withVerbose } from "../src/index.ts";
+import {
+  createLogger,
+  getDefaultLogger,
+  getSilentLogger,
+  type Logger,
+  withVerbose,
+} from "../src/index.ts";
 
 describe("Print sample output", () => {
   it("prints consloe Logger messages", () => {
@@ -304,6 +310,33 @@ describe("Logger Factory & Wiring", () => {
       expect(firstInstance).toBeDefined();
       expect(firstInstance).toBe(secondInstance);
       expect(firstInstance.level).toBe("info");
+    });
+
+    it("should return the same singleton silent Logger instance across multiple calls", () => {
+      const firstInstance = getSilentLogger();
+      const secondInstance = getSilentLogger();
+
+      expect(firstInstance).toBeDefined();
+      expect(firstInstance).toBe(secondInstance);
+      expect(firstInstance.level).toBe("silent");
+    });
+
+    it("should keep default and silent logger as distinct instances", () => {
+      const defaultInstance = getDefaultLogger();
+      const silentInstance = getSilentLogger();
+
+      expect(defaultInstance).not.toBe(silentInstance);
+    });
+
+    it("should not emit any output from the silent logger at any level", () => {
+      const logger = getSilentLogger();
+
+      logger.error("this should never be printed");
+      logger.warn("this should never be printed");
+      logger.info("this should never be printed");
+
+      expect(stdoutSpy).not.toHaveBeenCalled();
+      expect(stderrSpy).not.toHaveBeenCalled();
     });
   });
 });

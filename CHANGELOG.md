@@ -1,5 +1,12 @@
 # @wicle/tiny-logger
 
+## 0.11.0
+
+### Minor Changes
+
+- hook functions now receive formatOptions as parameter.
+- add utility functions: withVerbose(), getSilentLogger().
+
 ## 0.10.1
 
 ### Patch Changes

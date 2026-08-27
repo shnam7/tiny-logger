@@ -1,7 +1,7 @@
 import type { LevelWithSilent, SerializedError } from "pino";
 import type { Logger as BaseLogger } from "ts-log";
 
-export type { LevelWithSilent, SerializedError };
+export type { SerializedError };
 
 export interface LogObject {
   level: number;
@@ -27,10 +27,10 @@ export type FormatOptions = FormatHooks & {
   levelTag?: boolean;
 };
 
-export type ExtendedLoggerLevel = LevelWithSilent | "verbose";
+export type LogLevel = LevelWithSilent | "verbose";
 
 export type LoggerOptions = Partial<FormatOptions> & {
-  level?: ExtendedLoggerLevel;
+  level?: LogLevel;
   prefix?: string;
 };
 

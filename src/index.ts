@@ -16,6 +16,7 @@ export * from "./hooks.ts";
 export type { Logger };
 
 let defaultLogger: Logger | undefined;
+let silentLogger: Logger | undefined;
 
 const isColorSupported = (): boolean => Boolean(process.stdout.isTTY) && !process.env.NO_COLOR;
 
@@ -101,6 +102,11 @@ export function createLogger(options: LoggerOptions = {}): Logger {
 export function getDefaultLogger(): Logger {
   defaultLogger ??= createLogger({});
   return defaultLogger;
+}
+
+export function getSilentLogger(): Logger {
+  silentLogger ??= createLogger({ level: "silent" });
+  return silentLogger;
 }
 
 export function withVerbose(logger: Partial<Logger>, verbose?: Logger["verbose"]): Logger {
