@@ -1,7 +1,19 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { createLogger, getDefaultLogger } from "../src/index.ts";
+import { createLogger, getDefaultLogger, type Logger, withVerbose } from "../src/index.ts";
 
 describe("Print sample output", () => {
+  it("prints consloe Logger messages", () => {
+    const logger: Logger = { ...console, verbose: console.info };
+    logger.level = "info"; // this has no effect to console.
+
+    logger.trace("This is a trace message");
+    logger.debug("Debugging details here");
+    logger.verbose("Verbose details here");
+    logger.info("Application started");
+    logger.warn("Something looks suspicious");
+    logger.error("An error occurred");
+  });
+
   it("prints defaultLogger messages", () => {
     const logger = getDefaultLogger();
     logger.level = "debug";
@@ -176,6 +188,51 @@ describe("Logger Factory & Wiring", () => {
       expect(errOutput).toContain("Query execution failed");
       expect(errOutput).toContain("Database connection timeout");
       expect(errOutput).toContain("Error: Database connection timeout");
+    });
+  });
+
+  describe("withVerbose Utility Polyfill", () => {
+    it("should return the original logger untouched if verbose method already exists", () => {
+      const logger = createLogger({ level: "info" });
+      const wrapped = withVerbose(logger);
+
+      expect(wrapped).toBe(logger);
+    });
+
+    it("should polyfill verbose using debug method when verbose is missing", () => {
+      const mockPartialLogger: Partial<Logger> = {
+        debug: vi.fn(),
+        info: vi.fn(),
+      };
+
+      const wrapped = withVerbose(mockPartialLogger);
+      expect(wrapped.verbose).toBeDefined();
+
+      wrapped.verbose("test verbose polyfill", { foo: "bar" });
+      expect(mockPartialLogger.debug).toHaveBeenCalledWith("test verbose polyfill", { foo: "bar" });
+    });
+
+    it("should prefer explicitly provided custom verbose function over debug method", () => {
+      const mockPartialLogger: Partial<Logger> = {
+        debug: vi.fn(),
+      };
+      const customVerboseSpy = vi.fn();
+
+      const wrapped = withVerbose(mockPartialLogger, customVerboseSpy);
+
+      wrapped.verbose("explicit verbose message");
+      expect(customVerboseSpy).toHaveBeenCalledWith("explicit verbose message");
+      expect(mockPartialLogger.debug).not.toHaveBeenCalled();
+    });
+
+    it("should throw an error if both verbose and debug are missing and no fallback is supplied", () => {
+      const minimalLogger: Partial<Logger> = {
+        info: vi.fn(),
+      };
+
+      expect(() => withVerbose(minimalLogger)).toThrow(
+        "Cannot polyfill verbose method: fallback is missing",
+      );
     });
   });
 

@@ -27,7 +27,7 @@ export function formatter(rawLine: string, options: FormatOptions): FormattedLin
   try {
     const logObj = JSON.parse(rawLine) as LogObject;
 
-    logObj.time = Number(logObj.time || Date.now());
+    logObj.time = Number(logObj.time ?? Date.now());
     logObj.level = Number(logObj.level ?? LOG_LEVEL.info);
 
     const timeStr = options.timeStamp ? options.formatTime(logObj, options) : "";
@@ -35,7 +35,12 @@ export function formatter(rawLine: string, options: FormatOptions): FormattedLin
     const prefixStr = logObj.prefix ? options.formatPrefix(logObj, options) : "";
     const msgStr = logObj.msg !== undefined ? options.formatMsg(logObj, options) : "";
 
-    let line = `${[timeStr, levelStr, prefixStr, msgStr].filter((s) => s.length > 0).join(" ")}\n`;
+    let line = "";
+    if (timeStr) line += timeStr;
+    if (levelStr) line += (line ? " " : "") + levelStr;
+    if (prefixStr) line += (line ? " " : "") + prefixStr;
+    if (msgStr) line += (line ? " " : "") + msgStr;
+    line += "\n";
 
     if (logObj.err && typeof logObj.err === "object") {
       const detail =
@@ -55,10 +60,10 @@ export function formatter(rawLine: string, options: FormatOptions): FormattedLin
   }
 }
 
-function createFormattedStream(formatter: Formatter, options: FormatOptions): Writable {
+function createFormattedStream(fmt: Formatter, options: FormatOptions): Writable {
   return new Writable({
     write(chunk: Buffer | string, _encoding, callback) {
-      const { line, stream } = formatter(chunk.toString(), options);
+      const { line, stream } = fmt(chunk.toString(), options);
       if (line) (stream === "stderr" ? process.stderr : process.stdout).write(line);
       callback();
     },
@@ -69,8 +74,8 @@ export function createLogger(options: LoggerOptions = {}): Logger {
   const pinoOptions: pino.LoggerOptions = {
     serializers: { err: pino.stdSerializers.err },
     customLevels: { verbose: LOG_LEVEL.verbose },
-    useOnlyCustomLevels: false, // 표준 레벨(info, debug 등)도 하이브리드로 함께 사용하도록 명시
-    level: options.level ?? "info", // 임의 변환 필터링 레이어 없이 "verbose" 및 "silent" 등을 네이티브 수용
+    useOnlyCustomLevels: false, // false means standard levels(info, debug, etc) will be used.
+    level: options.level ?? "info",
   };
 
   const shouldColorize = options.colorize ?? isColorSupported();
@@ -96,4 +101,18 @@ export function createLogger(options: LoggerOptions = {}): Logger {
 export function getDefaultLogger(): Logger {
   defaultLogger ??= createLogger({});
   return defaultLogger;
+}
+
+export function withVerbose(logger: Partial<Logger>, verbose?: Logger["verbose"]): Logger {
+  if (logger.verbose) return logger as Logger;
+
+  const fallbackVerbose = verbose ?? logger.debug;
+  if (!fallbackVerbose) {
+    throw new Error("Cannot polyfill verbose method: fallback is missing");
+  }
+
+  return {
+    ...logger,
+    verbose: fallbackVerbose.bind(logger),
+  } as Logger;
 }

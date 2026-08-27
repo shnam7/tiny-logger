@@ -1,4 +1,5 @@
 import type { LevelWithSilent, SerializedError } from "pino";
+import type { Logger as BaseLogger } from "ts-log";
 
 export type { LevelWithSilent, SerializedError };
 
@@ -40,7 +41,6 @@ export interface FormattedLine {
 
 export type Formatter = (rawLine: string, options: FormatOptions) => FormattedLine;
 
-import type { Logger as BaseLogger } from "ts-log";
 export interface Logger extends BaseLogger {
   verbose: (msg: string, ...args: unknown[]) => void;
 }
