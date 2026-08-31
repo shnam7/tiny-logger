@@ -1,5 +1,11 @@
 # @wicle/tiny-logger
 
+## 0.11.1
+
+### Patch Changes
+
+- Fix the package name to @wicle/tiny-logger in README and improve color support logic.
+
 ## 0.11.0
 
 ### Minor Changes

@@ -17,7 +17,7 @@
 ## Installation
 
 ```bash
-npm install tiny-logger
+npm install @wicle/tiny-logger
 ```
 
 ## Usage
@@ -25,7 +25,7 @@ npm install tiny-logger
 ### Create a Logger
 
 ```ts
-import { createLogger } from "tiny-logger";
+import { createLogger } from "@wicle/tiny-logger";
 
 const logger = createLogger({ prefix: "MyApp", level: "trace" });
 
@@ -53,7 +53,7 @@ A predefined default logger instance. It runs at the `info` level in an environm
 **Caution:** Because this is a global instance, modifying its properties will have a global effect.
 
 ```ts
-import { getDefaultLogger } from "tiny-logger";
+import { getDefaultLogger } from "@wicle/tiny-logger";
 
 const defaultLogger = getDefaultLogger();
 defaultLogger.info("Using the default logger instance");
@@ -67,7 +67,7 @@ defaultLogger.level = "debug";
 `withVerbose` guarantees that a logger exposes a `verbose` method, falling back to `debug` (or an explicit function you provide) when the underlying logger does not define one natively. This is handy when wrapping loggers like `console` that do not implement `verbose`:
 
 ```ts
-import { withVerbose } from "tiny-logger";
+import { withVerbose } from "@wicle/tiny-logger";
 
 const logger = withVerbose(console); // console.verbose doesn't exist, so it falls back to console.debug
 logger.verbose("Verbose granular details here");
@@ -82,7 +82,7 @@ const logger3 = withVerbose(console, (...args) => {
 **Caution:** `console` does not support log levels, so changing the level will have no effect.
 
 ```ts
-import { withVerbose } from "tiny-logger";
+import { withVerbose } from "@wicle/tiny-logger";
 
 const logger = withVerbose(console);
 logger.level = "warn";
@@ -95,7 +95,7 @@ A predefined global logger instance set to the `silent` level.
 This is a handy tool for suppressing all output from third-party APIs that accept a custom logger.
 
 ```ts
-import { getSilentLogger } from "tiny-logger";
+import { getSilentLogger } from "@wicle/tiny-logger";
 import { copyChangedSync } from "copy-changed";
 
 const silentLogger = getSilentLogger();
@@ -110,7 +110,7 @@ copyChangedSync({ logger: silentLogger }); // Suppress all output messages
 
 | Option         | Type                          | Description                                                                                                          |
 | :------------- | :---------------------------- | :------------------------------------------------------------------------------------------------------------------- |
-| `level`        | `string`                      | Minimum log level to emit (`"trace"`, `"debug"`, `"verbose"`, `"info"`, `"warn"`, `"error"`, `"fatal"`, `"silent"`). |
+| `level`        | `LogLevel`                    | Minimum log level to emit (`"trace"`, `"debug"`, `"verbose"`, `"info"`, `"warn"`, `"error"`, `"fatal"`, `"silent"`). |
 | `prefix`       | `string`                      | Optional tag prefixed to each log. Defaults to an empty string.                                                      |
 | `colorize`     | `boolean`                     | Force color on (`true`) or off (`false`). Defaults to `undefined`, which enables auto-detection.                     |
 | `timeStamp`    | `boolean`                     | Toggle inclusion of the timestamp in output lines. Defaults to `true`.                                               |
@@ -127,7 +127,7 @@ Each hook receives the parsed `LogObject` and the full `FormatOptions` context.
 For example, to keep the default coloring but wrap the message text:
 
 ```ts
-import { createLogger } from "tiny-logger";
+import { createLogger } from "@wicle/tiny-logger";
 
 const logger = createLogger({
   colorize: true,
@@ -142,7 +142,7 @@ const logger = createLogger({
 ### LogObject
 
 ```ts
-import type { LogLevel, SerializedError } from "tiny-logger";
+import type { LogLevel, SerializedError } from "@wicle/tiny-logger";
 
 export interface LogObject {
   level: number;

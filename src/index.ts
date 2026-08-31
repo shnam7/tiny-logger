@@ -18,7 +18,9 @@ export type { Logger };
 let defaultLogger: Logger | undefined;
 let silentLogger: Logger | undefined;
 
-const isColorSupported = (): boolean => Boolean(process.stdout.isTTY) && !process.env.NO_COLOR;
+// NO_COLOR spec: presence of the variable disables color, regardless of its value.
+const isColorSupported = (): boolean =>
+  Boolean(process.stdout.isTTY) && !("NO_COLOR" in process.env);
 
 export function formatter(rawLine: string, options: FormatOptions): FormattedLine {
   if (!rawLine || rawLine === "\n" || rawLine === "\r\n") {
@@ -117,8 +119,11 @@ export function withVerbose(logger: Partial<Logger>, verbose?: Logger["verbose"]
     throw new Error("Cannot polyfill verbose method: fallback is missing");
   }
 
-  return {
-    ...logger,
-    verbose: fallbackVerbose.bind(logger),
-  } as Logger;
+  const boundVerbose = fallbackVerbose.bind(logger);
+  // Proxy instead of object spread, so prototype-based methods (e.g. console) aren't dropped.
+  return new Proxy(logger, {
+    get(target, prop, receiver) {
+      return prop === "verbose" ? boundVerbose : Reflect.get(target, prop, receiver);
+    },
+  }) as Logger;
 }
