@@ -169,7 +169,6 @@ The `level` option uses this type.
 ## Credits
 
 `tiny-logger` uses:
-
 - [ts-log](https://github.com/kallaspriit/ts-log) as the base log interface.
 - [pino](https://github.com/pinojs/pino) as the underlying log engine.
 

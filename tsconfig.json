@@ -8,8 +8,8 @@
     "module": "Preserve",
     "moduleDetection": "force",
     "jsx": "react-jsx",
-    "allowJs": true,
-    "types": ["node"],
+    // "allowJs": true,
+    "types": [],
 
     // Bundler mode
     "moduleResolution": "bundler",
@@ -31,10 +31,12 @@
 
     // other options
     "sourceMap": false,
+    "declaration": true,
     "declarationMap": false,
     "esModuleInterop": true,
     "incremental": false,
     "isolatedModules": true,
+    "isolatedDeclarations": true,
     "resolveJsonModule": true,
     "noEmitOnError": true,
     "noImplicitAny": true,
